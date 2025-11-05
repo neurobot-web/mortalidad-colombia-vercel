@@ -55,208 +55,76 @@ app = dash.Dash(__name__, title='Análisis de Mortalidad Colombia 2019',
                 external_stylesheets=external_stylesheets,
                 suppress_callback_exceptions=True)
 
-# Layout de la aplicación con mejor diseño
+# Layout simplificado para evitar errores de sintaxis
 app.layout = html.Div([
-    # Header con mejor diseño
+    html.H1('Análisis de Mortalidad Colombia 2019', style={'textAlign': 'center'}),
     html.Div([
         html.Div([
-            html.H1('📊 Análisis de Mortalidad en Colombia - 2019',
-                    style={'color': '#ffffff', 'margin': '0', 'fontSize': '2.5rem', 'fontWeight': 'bold'}),
-            html.P('Datos oficiales del DANE - Estadísticas Vitales 2019',
-                   style={'color': '#e8f4f8', 'margin': '10px 0 0 0', 'fontSize': '1.1rem'})
-        ], className='col-md-8'),
+            html.H3('Filtros'),
+            html.Label('Departamento:'),
+            dcc.Dropdown(
+                id='departamento-filter',
+                options=[{'label': 'Todos', 'value': 'all'}] +
+                       [{'label': dept, 'value': dept} for dept in ['Bogotá', 'Antioquia', 'Valle del Cauca']],
+                value='all'
+            ),
+            html.Label('Sexo:'),
+            dcc.Dropdown(
+                id='sexo-filter',
+                options=[
+                    {'label': 'Todos', 'value': 'all'},
+                    {'label': 'Masculino', 'value': '1'},
+                    {'label': 'Femenino', 'value': '2'}
+                ],
+                value='all'
+            ),
+        ], style={'width': '30%', 'display': 'inline-block'}),
         html.Div([
-            html.Img(src='https://www.dane.gov.co/files/images/logos/logo.png',
-                     style={'height': '80px', 'width': 'auto'}),
-        ], className='col-md-4 text-right')
-    ], className='row bg-primary p-4 mb-4'),
-
-    # Contenedor principal
+            html.H3('Estadísticas'),
+            html.Div(id='total-muertes', children='Cargando...'),
+            html.Div(id='muertes-hombres', children='Cargando...'),
+            html.Div(id='muertes-mujeres', children='Cargando...'),
+        ], style={'width': '30%', 'display': 'inline-block'}),
+    ]),
     html.Div([
-        # Filtros interactivos
         html.Div([
-            html.Div([
-                html.H4('🎛️ Filtros Interactivos', className='mb-3'),
-                html.Div([
-                    html.Label('Seleccionar Departamento:', className='form-label'),
-                    dcc.Dropdown(
-                        id='departamento-filter',
-                        options=[{'label': 'Todos los Departamentos', 'value': 'all'}] +
-                               [{'label': dept, 'value': dept} for dept in sorted(df_mortality['NOM_DPTO'].dropna().unique())],
-                        value='all',
-                        className='mb-3'
-                    ),
-                ], className='col-md-4'),
-                html.Div([
-                    html.Label('Seleccionar Sexo:', className='form-label'),
-                    dcc.Dropdown(
-                        id='sexo-filter',
-                        options=[
-                            {'label': 'Todos', 'value': 'all'},
-                            {'label': 'Masculino', 'value': '1'},
-                            {'label': 'Femenino', 'value': '2'},
-                            {'label': 'Indeterminado', 'value': '3'}
-                        ],
-                        value='all',
-                        className='mb-3'
-                    ),
-                ], className='col-md-4'),
-                html.Div([
-                    html.Label('Seleccionar Grupo de Edad:', className='form-label'),
-                    dcc.Dropdown(
-                        id='edad-filter',
-                        options=[{'label': 'Todos los Grupos', 'value': 'all'}] +
-                               [{'label': grupo, 'value': grupo} for grupo in sorted(df_mortality['GRUPO_EDAD1'].dropna().unique())],
-                        value='all',
-                        className='mb-3'
-                    ),
-                ], className='col-md-4'),
-            ], className='row mb-4'),
-        ], className='card p-4 mb-4'),
-
-        # Primera fila - Estadísticas generales
+            html.H4('Distribución por Departamento'),
+            dcc.Graph(id='mapa-departamentos')
+        ], style={'width': '45%', 'display': 'inline-block'}),
         html.Div([
-            html.Div([
-                html.Div([
-                    html.I(className="fas fa-skull-crossbones fa-2x", style={'color': '#dc3545'}),
-                    html.H3(id='total-muertes', style={'margin': '10px 0', 'color': '#495057'}),
-                    html.P('Total de Muertes', style={'margin': '0', 'color': '#6c757d'})
-                ], className='card-body text-center')
-            ], className='card shadow-sm mb-4'),
-        ], className='col-md-3'),
+            html.H4('Tendencia Mensual'),
+            dcc.Graph(id='lineas-meses')
+        ], style={'width': '45%', 'display': 'inline-block'}),
+    ]),
+    html.Div([
         html.Div([
-            html.Div([
-                html.I(className="fas fa-male fa-2x", style={'color': '#007bff'}),
-                html.H3(id='muertes-hombres', style={'margin': '10px 0', 'color': '#495057'}),
-                html.P('Muertes Masculinas', style={'margin': '0', 'color': '#6c757d'})
-            ], className='card-body text-center')
-        ], className='card shadow-sm mb-4'),
-        ], className='col-md-3'),
+            html.H4('Ciudades Más Violentas'),
+            dcc.Graph(id='barras-violentas')
+        ], style={'width': '45%', 'display': 'inline-block'}),
         html.Div([
-            html.Div([
-                html.I(className="fas fa-female fa-2x", style={'color': '#e83e8c'}),
-                html.H3(id='muertes-mujeres', style={'margin': '10px 0', 'color': '#495057'}),
-                html.P('Muertes Femeninas', style={'margin': '0', 'color': '#6c757d'})
-            ], className='card-body text-center')
-        ], className='card shadow-sm mb-4'),
-        ], className='col-md-3'),
+            html.H4('Ciudades Más Seguras'),
+            dcc.Graph(id='circular-menor-mortalidad')
+        ], style={'width': '45%', 'display': 'inline-block'}),
+    ]),
+    html.Div([
+        html.H4('Principales Causas de Muerte'),
+        dash_table.DataTable(id='tabla-causas', columns=[
+            {'name': 'Código', 'id': 'codigo'},
+            {'name': 'Causa', 'id': 'causa'},
+            {'name': 'Total', 'id': 'total'}
+        ])
+    ]),
+    html.Div([
         html.Div([
-            html.Div([
-                html.I(className="fas fa-city fa-2x", style={'color': '#28a745'}),
-                html.H3(id='deptos-afectados', style={'margin': '10px 0', 'color': '#495057'}),
-                html.P('Departamentos', style={'margin': '0', 'color': '#6c757d'})
-            ], className='card-body text-center')
-        ], className='card shadow-sm mb-4'),
-        ], className='col-md-3')
-        ], className='row mb-4'),
-
-        # Segunda fila - Gráficos principales
+            html.H4('Distribución por Sexo'),
+            dcc.Graph(id='barras-apiladas-sexo')
+        ], style={'width': '45%', 'display': 'inline-block'}),
         html.Div([
-            html.Div([
-                html.Div([
-                    html.H4('📍 Distribución por Departamento',
-                           className='card-title text-primary mb-3'),
-                    dcc.Graph(id='mapa-departamentos', config={'displayModeBar': False})
-                ], className='card-body')
-            ], className='card shadow-sm mb-4'),
-        ], className='col-md-6'),
-        html.Div([
-            html.Div([
-                html.H4('📈 Tendencia Mensual',
-                       className='card-title text-primary mb-3'),
-                dcc.Graph(id='lineas-meses', config={'displayModeBar': False})
-            ], className='card-body')
-        ], className='card shadow-sm mb-4'),
-        ], className='col-md-6')
-        ], className='row mb-4'),
-
-        # Tercera fila - Análisis específicos
-        html.Div([
-            html.Div([
-                html.Div([
-                    html.H4('🔪 Ciudades Más Violentas',
-                           className='card-title text-danger mb-3'),
-                    dcc.Graph(id='barras-violentas', config={'displayModeBar': False})
-                ], className='card-body')
-            ], className='card shadow-sm mb-4'),
-        ], className='col-md-6'),
-        html.Div([
-            html.Div([
-                html.H4('🛡️ Ciudades Más Seguras',
-                       className='card-title text-success mb-3'),
-                dcc.Graph(id='circular-menor-mortalidad', config={'displayModeBar': False})
-            ], className='card-body')
-        ], className='card shadow-sm mb-4'),
-        ], className='col-md-6')
-        ], className='row mb-4'),
-
-        # Cuarta fila - Causas y demografía
-        html.Div([
-            html.Div([
-                html.Div([
-                    html.H4('⚕️ Principales Causas de Muerte',
-                           className='card-title text-warning mb-3'),
-                    dash_table.DataTable(
-                        id='tabla-causas',
-                        columns=[
-                            {'name': 'Código CIE-10', 'id': 'codigo'},
-                            {'name': 'Descripción', 'id': 'causa'},
-                            {'name': 'Casos', 'id': 'total'}
-                        ],
-                        style_table={'overflowX': 'auto'},
-                        style_cell={
-                            'textAlign': 'left',
-                            'padding': '12px',
-                            'fontSize': '14px',
-                            'border': '1px solid #dee2e6'
-                        },
-                        style_header={
-                            'backgroundColor': '#f8f9fa',
-                            'fontWeight': 'bold',
-                            'border': '1px solid #dee2e6',
-                            'textAlign': 'center'
-                        },
-                        style_data_conditional=[
-                            {'if': {'row_index': 'odd'}, 'backgroundColor': '#f8f9fa'}
-                        ]
-                    )
-                ], className='card-body')
-            ], className='card shadow-sm mb-4'),
-        ], className='col-md-12')
-        ], className='row mb-4'),
-
-        # Quinta fila - Análisis demográfico
-        html.Div([
-            html.Div([
-                html.Div([
-                    html.H4('👥 Distribución por Sexo y Departamento',
-                           className='card-title text-info mb-3'),
-                    dcc.Graph(id='barras-apiladas-sexo', config={'displayModeBar': False})
-                ], className='card-body')
-            ], className='card shadow-sm mb-4'),
-        ], className='col-md-6'),
-        html.Div([
-            html.Div([
-                html.H4('🎂 Distribución por Grupos de Edad',
-                       className='card-title text-secondary mb-3'),
-                dcc.Graph(id='histograma-edad', config={'displayModeBar': False})
-            ], className='card-body')
-        ], className='card shadow-sm mb-4'),
-        ], className='col-md-6')
-        ], className='row mb-4'),
-
-    ], className='container-fluid'),
-
-    # Footer
-    html.Footer([
-        html.Div([
-            html.P('📊 Datos proporcionados por el Departamento Administrativo Nacional de Estadística (DANE)',
-                   style={'margin': '0', 'color': '#6c757d'}),
-            html.P('🔍 Análisis realizado con Python, Dash y Plotly',
-                   style={'margin': '5px 0 0 0', 'color': '#6c757d'})
-        ], className='text-center py-3')
-    ], className='bg-light mt-5')
-], style={'backgroundColor': '#f8f9fa', 'minHeight': '100vh'})
+            html.H4('Distribución por Edad'),
+            dcc.Graph(id='histograma-edad')
+        ], style={'width': '45%', 'display': 'inline-block'}),
+    ])
+])
 
 # Callbacks para actualizar gráficos
 @app.callback(
